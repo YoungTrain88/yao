@@ -16,6 +16,7 @@
 //#include "win_client_cpp.h"
 
 #define SOCKET_FLAG1
+//#define SOCKET_FLAG2 //发送数据（添加中间控制层）
 
 #pragma comment(lib, "MocapApi.lib")
 #pragma comment(lib, "ws2_32.lib") 
@@ -73,8 +74,9 @@ int main() {
     bool starterFlag = true;
     bool State[2] = { true, false };       //左右臂的工作状态
     
-    //setting_init();
-        // 初始化WinSock
+
+    //BLOCK0: 初始化WinSock
+    // 初始化WinSock
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2, 2), &wsaData);
 
@@ -110,7 +112,7 @@ int main() {
 
 
 
-
+    /*BLOCK0*/
 
 
     //各个关节角的修正值
@@ -119,6 +121,7 @@ int main() {
         { 90, 0, 0, 0, 0 }
     };
 
+    //BLOCK1 : 以下为使用MocapApi的准备工作，具体的设置参见Axis Studio中关于BVH数据广播的设置
     //以下为使用MocapApi的准备工作，具体的设置参见Axis Studio中关于BVH数据广播的设置
     
     // 创建句柄
@@ -208,7 +211,10 @@ int main() {
         reinterpret_cast<void**>(&mcpRigidBody));
 
     //以上为使用MocapApi的准备工作
-    
+   //BLOCK1 : 以下为使用MocapApi的准备工作，具体的设置参见Axis Studio中关于BVH数据广播的设置
+
+   //以下为使用MocapApi的准备工作，具体的设置参见Axis Studio中关于BVH数据广播的设置
+
 
 
     //校准，用来确定动作基准，如果采取T-pose，可以不用校准
@@ -285,6 +291,8 @@ int main() {
     if (!checkflag || error != MocapApi::Error_None) {
         std::cout << "failed to calibrate, exiting program..." << std::endl;
     }
+
+    /*BLOCK2校准*/
     else {      //完成校准后，正式开始遥操作
         // 获取当前时间
         std::time_t t = std::time(nullptr);
@@ -311,43 +319,13 @@ int main() {
         //轮询事件
         count = 0;
 
-#ifdef SOCKET_FLAG
-        //准备发送数据（通过Socket)
-        WSADATA wsaData;
-        SOCKET hSocket[2];
-        SOCKADDR_IN servAddr;
 
-        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-            ErrorHandling("WSAStartup() error!");
-#endif
 
         for(int mp = 0; mp < 2; mp++) {
             for (int i = 1; i < 4; i++) {
                 CtMat[mp][i] = UtMat * Mat[mp][i].inverse();
             }
-#ifdef SOCKET_FLAG
-            hSocket[mp] = socket(PF_INET, SOCK_STREAM, 0);
-            if (hSocket[mp] == INVALID_SOCKET) {
-                ErrorHandling("socket() error");
-                State[mp] = false;
-                continue;
-            }
-            memset(&servAddr, 0, sizeof(servAddr));
-            servAddr.sin_family = AF_INET;
-            servAddr.sin_port = htons(atoi(serv_port[mp]));
-            inet_pton(AF_INET, serv_ip, &servAddr.sin_addr);
-            //servAddr.sin_addr.s_addr = inet_addr("192.168.24.68");
-            //servAddr.sin_port = htons(atoi("9120"));
 
-            if (connect(hSocket[mp], (SOCKADDR*)&servAddr, sizeof(servAddr)) == SOCKET_ERROR) {
-                ErrorHandling("connect() error");
-                State[mp] = false;
-            }
-            else {
-                std::cout << mp << " connect success" << std::endl;
-                State[mp] = true;
-            }
-#endif
         }
 
         //发送数据的容器
@@ -488,6 +466,7 @@ int main() {
                     }
 
 #ifdef SOCKET_FLAG1
+                    //BLOCK3 : SOCKET发送数据
                     //准备数据
                     data[5] = 0;    //最后一个角度不需要控制
                     for (int i = 0; i < 5; i++) {
@@ -509,6 +488,40 @@ int main() {
 
                     // 等待1秒
                     Sleep(100);
+#endif
+#ifdef SOCKET_FLAG2
+                    // ========== BLOCK3: SOCKET发送数据（添加中间控制层） ==========
+
+                    // 初始化滤波器状态，只初始化一次
+                    static std::vector<double> last_filtered_angles(5, 0.0);
+
+                    // 1. 准备原始关节角数据
+                    data[5] = 0; // 最后一个角度不需要控制
+                    for (int i = 0; i < 5; i++) {
+                        data[i] = theta[i];
+                    }
+                    std::vector<double> data_vector(data, data + 5);
+
+                    // 2. 中间控制层：滑动滤波器（指数加权平均）
+                    double alpha = 0.2; // 平滑系数，可根据需求调整
+                    std::vector<double> filtered_angles(5);
+                    for (size_t i = 0; i < data_vector.size(); ++i) {
+                        filtered_angles[i] = alpha * data_vector[i] + (1.0 - alpha) * last_filtered_angles[i];
+                    }
+                    last_filtered_angles = filtered_angles;
+
+                    // 3. 序列化并发送数据
+                    std::string message = serialize_joint_angles(filtered_angles);
+                    message += "\n";
+                    send(clientSocket, message.c_str(), message.length(), 0);
+
+                    std::cout << "Sent filtered joint angles: " << message << std::endl;
+
+                    // 4. 控制发送频率（可保留或根据Sleep(1000/FPS)优化）
+                    Sleep(100);
+
+
+
 #endif
 
                     for (int i = 0; i < 5; i++) {
