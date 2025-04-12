@@ -15,13 +15,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="D:\浏览器\main.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="D:\浏览器\RotQua.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="win_client_cpp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

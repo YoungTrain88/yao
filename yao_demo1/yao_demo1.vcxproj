@@ -132,8 +132,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="D:\浏览器\main.cpp" />
     <ClCompile Include="D:\浏览器\RotQua.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="win_client_cpp.cpp" />
   </ItemGroup>
   <ItemGroup>
