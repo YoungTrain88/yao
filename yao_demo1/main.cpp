@@ -293,7 +293,7 @@ int main() {
 
         // 构建文件名，使用当前日期和时间
         char filename[200];
-        std::strftime(filename, sizeof(filename), "Tomato_Harvester_Mocap_%Y%m%d_%H%M%S.txt", &timeinfo);
+        std::strftime(filename, sizeof(filename), "Apple_Harvester_Mocap_%Y%m%d_%H%M%S.txt", &timeinfo);
 
         //将数据写入文件
         //std::ofstream file("D:\\NeuronMocapOutput\\sequence.txt");
