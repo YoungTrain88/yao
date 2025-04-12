@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="win_client_cpp.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -26,9 +23,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D:\浏览器\zip\zip\include\win_client_cpp.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="RotQua.h">
       <Filter>头文件</Filter>
     </ClInclude>

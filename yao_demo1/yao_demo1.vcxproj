@@ -134,10 +134,8 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="RotQua.cpp" />
-    <ClCompile Include="win_client_cpp.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D:\浏览器\zip\zip\include\win_client_cpp.h" />
     <ClInclude Include="RotQua.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

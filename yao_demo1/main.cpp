@@ -13,7 +13,7 @@
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <ctime>
-#include "win_client_cpp.h"
+//#include "win_client_cpp.h"
 
 #define SOCKET_FLAG1
 
@@ -33,6 +33,17 @@ const char *ErrorType[23] = {"Error_None", "Error_MoreEvent",
     "Error_TCP", "Error_QueuedCommandFaild", "Error_InterfaceIncompatible"};//MocapApi反馈错误的编号
 
 MocapApi::EMCPError error;
+
+std::string serialize_joint_angles(const std::vector<double>& joint_angles) {
+    std::ostringstream oss;
+    for (size_t i = 0; i < joint_angles.size(); ++i) {
+        oss << joint_angles[i];
+        if (i != joint_angles.size() - 1) {
+            oss << ",";
+        }
+    }
+    return oss.str();
+}
 
 void ErrorHandling(const char* message)
 {
