@@ -5,3 +5,6 @@
 ### 小臂的绝对偏航->hor  :case1
 ### 手的相对偏航  ->ver  :case2
 ### 手的相对俯仰  ->ext  :case4
+
+###佩戴传感器有
+Hip、Spine、L shoulder、L upArm、L foreArm、L hand共六个
