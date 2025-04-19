@@ -13,13 +13,18 @@
 #include <stdio.h>  
 #include <stdlib.h>  
 #include <ctime>
-//#include "win_client_cpp.h"
+
 
 #define SOCKET_FLAG1
 //#define SOCKET_FLAG2 //发送数据（添加中间控制层）
 
 #pragma comment(lib, "MocapApi.lib")
 #pragma comment(lib, "ws2_32.lib") 
+
+
+double mapToRange(double value, double min_angle, double max_angle, double target_min, double target_max) {
+    return (value - min_angle) * (target_max - target_min) / (max_angle - min_angle) + target_min;
+}
 
 const uint16_t JointNum = 6;
 const uint16_t JointList[2][JointNum] = { { 0,9,36,37,38,39 }, //左臂涉及的动捕数据节点编号
@@ -62,6 +67,13 @@ void CheckError(const char* Todo) {
 }
 
 int main() {
+    // 假设原始角度的范围是 [-180, 180]，目标范围是 [0, 10]
+    double min_angle = -180.0;
+    double max_angle = 180.0;
+    double target_min = 0.0;
+    double target_max = 10.0;
+
+
     std::cout << std::setiosflags(std::ios::fixed) << std::setprecision(3);//小数显示3位
     double theta[5], thetaTemp[5], formerTheta[2][5], SetTimeOut = 180,      //SetTimeOut为整个流程的限时，单位为秒
         FPS = 4, SpeedLimit = 180, threshold = SpeedLimit/FPS;       //FPS为采集数据的帧率，SpeedLimit为机械臂每秒转速限制
@@ -74,7 +86,7 @@ int main() {
     bool starterFlag = true;
     bool State[2] = { true, false };       //左右臂的工作状态
     
-
+#ifdef SOCKET_FLAG1
     //BLOCK0: 初始化WinSock
     // 初始化WinSock
     WSADATA wsaData;
@@ -93,7 +105,7 @@ int main() {
     serverAddr.sin_port = htons(12345); // 端口号
 
     // 使用inet_pton替换inet_addr
-    if (inet_pton(AF_INET, "192.168.25.36", &serverAddr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, "10.181.137.104", &serverAddr.sin_addr) <= 0) {
         std::cerr << "Invalid IP address" << std::endl;
         closesocket(clientSocket);
         WSACleanup();
@@ -109,7 +121,7 @@ int main() {
     }
 
     std::cout << "Connected to ROS server" << std::endl;
-
+#endif
 
 
     /*BLOCK0*/
@@ -329,7 +341,7 @@ int main() {
         }
 
         //发送数据的容器
-        double data[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+        double data[] = {0.0, 0.0, 0.0, 0.0, 0.0 };
         int data_size = sizeof(data);
 
         //循环采集动捕数据
@@ -395,11 +407,12 @@ int main() {
                 if (State[mp]) {
                     if (mp == 0) {
                         //左臂(0,0)向左，(1,0)向上，(2,0)向前（T-pose下左上前坐标系）
-                        thetaTemp[0] = atan2(StdMat[mp][2](0, 0), StdMat[mp][2](2, 0));     //小臂偏航决定第一关节角
-                        thetaTemp[1] = atan2(StdMat[mp][1](0, 0), StdMat[mp][1](2, 0));       //大臂偏航决定第二关节角
-                        thetaTemp[2] = asin(StdMat[mp][2](1, 0));       //小臂俯仰决定第三关节角
-                        thetaTemp[3] = asin(StdMat[mp][3](1, 0));       //手掌俯仰决定第四关节角
-                        thetaTemp[4] = atan2(StdMat[mp][3](0, 0), StdMat[mp][3](2, 0));        //手掌偏航决定第五关节角
+                        thetaTemp[0] = atan2(StdMat[mp][2](0, 0), StdMat[mp][2](2, 0));     //小臂偏航
+                        thetaTemp[1] = asin(StdMat[mp][1](1, 0));        //大臂俯仰
+                        thetaTemp[2] = asin(StdMat[mp][2](1, 0));       //小臂俯仰
+                        thetaTemp[3] = asin(StdMat[mp][3](1, 0));       //手掌俯仰
+                        thetaTemp[4] = atan2(StdMat[mp][3](0, 0), StdMat[mp][3](2, 0));        //手掌偏航
+
                         for (int i = 0; i < 5; i++) {
                             thetaTemp[i] *= 180 / 3.14159;
                             thetaTemp[i] += thetaCor[mp][i]; //校正
@@ -422,29 +435,29 @@ int main() {
                     for (int i = 0; i < 5; i++) {
                         switch (i) {
                         case 0:
-                            theta[i] = thetaTemp[i];
-                            if (theta[i] < -360) theta[i] = -360;
-                            else if (theta[i] > 360) theta[i] = 360;
+                            theta[i] = thetaTemp[1];
+                            //if (theta[i] < -360) theta[i] = -360;
+                            //else if (theta[i] > 360) theta[i] = 360;
                             break;
                         case 1:
-                            theta[i] = thetaTemp[i];
-                            if (theta[i] < -85) theta[i] = -85;
-                            else if (theta[i] > 265) theta[i] = 265;
+                            theta[i] = thetaTemp[0];
+                            //if (theta[i] < -85) theta[i] = -85;
+                            //else if (theta[i] > 265) theta[i] = 265;
                             break;
                         case 2:
-                            theta[i] = thetaTemp[i] - thetaTemp[i - 1];
-                            if (theta[i] < -175) theta[i] = -175;
-                            else if (theta[i] > 175) theta[i] = 175;
+                            theta[i] = thetaTemp[4] - thetaTemp[0];
+                            //if (theta[i] < -175) theta[i] = -175;
+                            //else if (theta[i] > 175) theta[i] = 175;
                             break;
                         case 3:
-                            theta[i] = thetaTemp[i] - thetaTemp[i - 1];
-                            if (theta[i] < -85) theta[i] = -85;
-                            else if (theta[i] > 265) theta[i] = 265;
+                            theta[i] = thetaTemp[2] - thetaTemp[1];
+                            //if (theta[i] < -85) theta[i] = -85;
+                            //else if (theta[i] > 265) theta[i] = 265;
                             break;
                         case 4:
-                            theta[i] = thetaTemp[i] - theta[0];
-                            if (theta[i] < -360) theta[i] = -360;
-                            else if (theta[i] > 360) theta[i] = 360;
+                            theta[i] = thetaTemp[3] - thetaTemp[2];
+                            //if (theta[i] < -360) theta[i] = -360;
+                            //else if (theta[i] > 360) theta[i] = 360;
                             break;
 
                         }
@@ -466,9 +479,13 @@ int main() {
                     }
 
 #ifdef SOCKET_FLAG1
+                    //// 将 thetaTemp[1] 和 thetaTemp[2] 映射到 [0, 10]
+                    //theta[1] = mapToRange(theta[1], min_angle, max_angle, target_min, target_max);
+                    //theta[2] = mapToRange(theta[2], min_angle, max_angle, target_min, target_max);
+
                     //BLOCK3 : SOCKET发送数据
                     //准备数据
-                    data[5] = 0;    //最后一个角度不需要控制
+                    //data[5] = 0;    //最后一个角度不需要控制
                     for (int i = 0; i < 5; i++) {
                         data[i] = theta[i]*3.14/180;
                     }
