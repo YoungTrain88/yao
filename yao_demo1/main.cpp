@@ -22,9 +22,22 @@
 #pragma comment(lib, "ws2_32.lib") 
 
 
+//double mapToRange(double value, double min_angle, double max_angle, double target_min, double target_max) {
+//    return (value - min_angle) * (target_max - target_min) / (max_angle - min_angle) + target_min;
+//}
+
 double mapToRange(double value, double min_angle, double max_angle, double target_min, double target_max) {
-    return (value - min_angle) * (target_max - target_min) / (max_angle - min_angle) + target_min;
+    double mapped_value = (value - min_angle) * (target_max - target_min) / (max_angle - min_angle) + target_min;
+    if (mapped_value > target_max) {
+        return target_max;
+    }
+    else if (mapped_value < target_min) {
+        return target_min;
+    }
+    return mapped_value;
 }
+
+
 
 const uint16_t JointNum = 6;
 const uint16_t JointList[2][JointNum] = { { 0,9,36,37,38,39 }, //左臂涉及的动捕数据节点编号
@@ -68,10 +81,10 @@ void CheckError(const char* Todo) {
 
 int main() {
     // 假设原始角度的范围是 [-180, 180]，目标范围是 [0, 10]
-    double min_angle = -180.0;
-    double max_angle = 180.0;
-    double target_min = 0.0;
-    double target_max = 10.0;
+    double min_angles[5] = { -0.325, -3.002, -0.254, -0.938, 3.66 }; // 每个 theta[i] 的最小值
+    double max_angles[5] = { 1.57, -0.03, 1.968, 1.309, 2.18 };     // 每个 theta[i] 的最大值
+    double target_mins[5] = { -1.05,-0.6 -0.07, -1.05, 0,  };          // 每个 theta[i] 的目标范围最小值
+    double target_maxs[5] = { 0.52, 0.6, 0.30, 1.57, 0.13  };
 
 
     std::cout << std::setiosflags(std::ios::fixed) << std::setprecision(3);//小数显示3位
@@ -480,21 +493,30 @@ int main() {
 
 #ifdef SOCKET_FLAG1
                     //// 将 thetaTemp[1] 和 thetaTemp[2] 映射到 [0, 10]
-                    //theta[1] = mapToRange(theta[1], min_angle, max_angle, target_min, target_max);
-                    //theta[2] = mapToRange(theta[2], min_angle, max_angle, target_min, target_max);
-
+                   
                     //BLOCK3 : SOCKET发送数据
                     //准备数据
-                    //data[5] = 0;    //最后一个角度不需要控制
+
+
+                   
                     for (int i = 0; i < 5; i++) {
                         data[i] = theta[i]*3.14/180;
                     }
+
+                    //double min_angles[5] = { -180.0, -90.0, -45.0, -30.0, -15.0 }; // 每个 theta[i] 的最小值
+                    //double max_angles[5] = { 180.0, 90.0, 45.0, 30.0, 15.0 };     // 每个 theta[i] 的最大值
+                    //double target_mins[5] = { 0.0, 1.0, 2.0, 3.0, 4.0 };          // 每个 theta[i] 的目标范围最小值
+                    //double target_maxs[5] = { 10.0, 9.0, 8.0, 7.0, 6.0 };         // 每个 theta[i] 的目标范围最大值
+
+                    for (int i = 0; i < 5; i++) {
+                        data[i] = mapToRange(data[i], min_angles[i], max_angles[i], target_mins[i], target_maxs[i]);
+                        std::cout << "Mapped theta[" << i << "]: " << theta[i] << std::endl;
+                    }
+
+
                     std::vector<double> data_vector(data, data + sizeof(data) / sizeof(data[0]));
 
-                    //int res1 = send2ros(data_vector);
-                    // 模拟关节角数据发送
-        //std::vector<double> joint_angles = { 0.5, -0.8, 1.0, -0.5, 1.3, -1.2 }; // 模拟关节角数据
-
+                  
                     std::string message = serialize_joint_angles(data_vector);
 
                     message += "\n";
