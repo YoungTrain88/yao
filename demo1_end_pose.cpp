@@ -145,7 +145,7 @@ int main() {
 
     // --- BLOCK 0: NETWORK INITIALIZATION ---
     // (与之前版本完全相同，此处省略)
-    
+    #ifdef SOCKET_FLAG1
     // ... connect to ROS server ...
     SOCKET clientSocket;
     std::cout << "--- BLOCK 0: Initializing Network ---" << std::endl;
@@ -177,6 +177,7 @@ int main() {
         }
         std::cout << "Successfully connected to ROS server." << std::endl;
     }
+    #endif
 
 
     // --- BLOCK 1: MOCAP API INITIALIZATION ---
@@ -311,7 +312,9 @@ int main() {
                     std::string message = serialize_pose_data(relativePos, relativeRot);
                     message += "\n";
                     // 【修正】修正类型转换警告
+#ifdef SOCKET_FLAG1
                     send(clientSocket, message.c_str(), static_cast<int>(message.length()), 0);
+#endif
                 }
             }
             delete[] pJointHandles;
@@ -327,7 +330,9 @@ int main() {
     mcpRenderSettings->DestroyRenderSettings(mcpRenderSettingsHandle);
     application->CloseApplication(applicationHandle);
     application->DestroyApplication(applicationHandle);
+#ifdef SOCKET_FLAG1
     closesocket(clientSocket);
+#endif
     WSACleanup();
 
     std::cout << "Program finished." << std::endl;
