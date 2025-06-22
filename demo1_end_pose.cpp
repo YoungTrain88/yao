@@ -20,6 +20,8 @@
 #pragma comment(lib, "MocapApi.lib")
 #pragma comment(lib, "ws2_32.lib")
 
+#define SOCKET_FLAG1
+
 // =================================================================
 //                   1. CONFIGURATION PARAMETERS
 // =================================================================
